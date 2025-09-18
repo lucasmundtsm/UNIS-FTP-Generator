@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PO Upload to FTP Pick List Converter - UNIS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .upload-section {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+        
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            transform: scale(1.02);
+        }
+        
+        .upload-section.has-file {
+            border-color: #48bb78;
+            background: linear-gradient(to bottom, rgba(72, 187, 120, 0.05), rgba(72, 187, 120, 0.02));
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .file-info h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .file-info p {
+            color: #718096;
+            margin: 5px 0;
+        }
+        
+        .settings-section {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .settings-section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .setting-group {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .setting-group label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .setting-group input, .setting-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        .setting-group input:focus, .setting-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .setting-group .info {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .arn-section {
+            background: #fff5f5;
+            border: 2px solid #feb2b2;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .arn-section h3 {
+            color: #c53030;
+            margin-bottom: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 35px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-secondary:hover {
+            background: #f7fafc;
+        }
+        
+        .progress-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 30px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .status-message {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status-success {
+            background: #c6f6d5;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+        
+        .status-error {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #742a2a;
+        }
+        
+        .status-warning {
+            background: #feebc8;
+            border: 1px solid #fbd38d;
+            color: #744210;
+        }
+        
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results-card {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .results-card h2 {
+            color: #14532d;
+            margin-bottom: 15px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-card .label {
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+        
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .preview-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .preview-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .preview-table tr:hover {
+            background: #f7fafc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚚 PO Upload to FTP Pick List Converter</h1>
+            <p>Automatically transform Amazon PO Upload files into UNIS Pick List FTP format with ARN extraction</p>
+        </div>
+        
+        <div class="main-card">
+            <!-- File Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <div>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2" style="margin: 0 auto 20px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <h2 style="color: #4a5568; margin-bottom: 10px;">Upload PO File</h2>
+                    <p style="color: #718096; margin-bottom: 20px;">Drag & drop your PO_Upload_Processed file here or click to browse</p>
+                    <label for="fileInput" class="file-input-label">
+                        Choose Excel File
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls">
+                    <p style="color: #a0aec0; margin-top: 15px; font-size: 14px;">Accepts .xlsx and .xls files</p>
+                </div>
+                
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <h3>📄 File Loaded</h3>
+                    <p><strong>Name:</strong> <span id="fileName"></span></p>
+                    <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                    <p><strong>Sheets Found:</strong> <span id="sheetCount"></span></p>
+                    <p><strong>Accept UNIS Records:</strong> <span id="recordCount"></span></p>
+                </div>
+            </div>
+            
+            <!-- Settings Section -->
+            <div class="settings-section" style="display: none;" id="settingsSection">
+                <h2>⚙️ Processing Settings</h2>
+                
+                <!-- ARN Status Section -->
+                <div class="arn-section" id="arnSection" style="background: #f0fdf4; border-color: #86efac;">
+                    <h3 style="color: #14532d;">✅ Amazon Reference Numbers (ARN) Status</h3>
+                    <p style="color: #718096; margin-bottom: 10px;">
+                        ARNs will be automatically extracted from the Consolidation ID column in your file.
+                    </p>
+                    <div id="arnStatus"></div>
+                </div>
+                
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <label>FRD Date (First Receipt Date)</label>
+                        <input type="date" id="frdDate">
+                        <div class="info">Auto-set to today. Adjust if needed.</div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label>Product Category</label>
+                        <input type="text" id="productCategory" placeholder="e.g., kitchen, fanshop">
+                        <div class="info">Used in output filename</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons" id="actionButtons" style="display: none;">
+                <button class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                <button class="btn btn-primary" id="processBtn" onclick="processFile()">Generate FTP File</button>
+            </div>
+            
+            <!-- Progress Section -->
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <div class="results-card">
+                    <h2>✅ Processing Complete!</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="value" id="statPOs">0</div>
+                            <div class="label">POs Processed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="statItems">0</div>
+                            <div class="label">Line Items</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="statFCs">0</div>
+                            <div class="label">Fulfillment Centers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value" id="statQuantity">0</div>
+                            <div class="label">Total Units</div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <a href="#" id="downloadLink" class="download-btn">📥 Download FTP File</a>
+                    </div>
+                    
+                    <h3 style="margin-top: 30px; color: #2d3748;">Preview (First 10 rows)</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="preview-table" id="previewTable">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>PO Number</th>
+                                    <th>Customer SO</th>
+                                    <th>Item ID</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let uploadedFile = null;
+        let processedData = null;
+        let fcAddresses = {};
+        
+        // Load FC addresses on page load - Complete database from all sheets
+        async function loadFCAddresses() {
+            try {
+                // Complete FC Address database - All 161 FCs
+                fcAddresses = {
+                    // USA FCs (129 total)
+                    'ABE4': { name: 'ABE4', address1: '1610 Van Buren Road', city: 'Easton', state: 'PA', zip: '18045' },
+                    'ABE8': { name: 'ABE8', address1: '401 Independence Road', city: 'Florence', state: 'NJ', zip: '08518' },
+                    'ABQ2': { name: 'ABQ2', address1: '6251 Pioneer Trail', city: 'NW LOS LUNAS', state: 'NM', zip: '87031' },
+                    'ABS4': { name: 'ABS4', address1: '4410 Nexus Way', city: 'LAS VEGAS', state: 'NV', zip: '89115' },
+                    'ACY2': { name: 'ACY2', address1: '1101 E PEARL ST', city: 'BURLINGTON', state: 'NJ', zip: '08016' },
+                    'AKR1': { name: 'AKR1', address1: '4747 Rebar Ave NE', city: 'CANTON', state: 'OH', zip: '44705' },
+                    'ALB1': { name: 'ALB1', address1: '1835 US Route 9', city: 'Castleton', state: 'NY', zip: '12033' },
+                    'AMA1': { name: 'AMA1', address1: '8590 NE 24th Avenue', city: 'AMARILLO', state: 'TX', zip: '79108' },
+                    'AVP1': { name: 'AVP1', address1: '550 Oak Ridge Road', city: 'Hazleton', state: 'PA', zip: '18202' },
+                    'BFI3': { name: 'BFI3', address1: '2700 Center Drive', city: 'DuPont', state: 'WA', zip: '98327' },
+                    'BNA2': { name: 'BNA2', address1: '500 Duke Dr', city: 'Lebanon', state: 'TN', zip: '37090' },
+                    'BNA6': { name: 'BNA6', address1: '3875 GUTHRIE HWY', city: 'CLARKSVILLE', state: 'TN', zip: '37040' },
+                    'BOS7': { name: 'BOS7', address1: '1180 Innovation Way', city: 'Fall River', state: 'MA', zip: '02720' },
+                    'BRQ2': { name: 'BRQ2', address1: '9800 N HWY A1A', city: 'PORT ORANGE', state: 'FL', zip: '32127' },
+                    'BWI4': { name: 'BWI4', address1: '5550 Pennington Ave', city: 'BALTIMORE', state: 'MD', zip: '21226' },
+                    'CHA2': { name: 'CHA2', address1: '225 Infinity Dr NW', city: 'Charleston', state: 'TN', zip: '37310' },
+                    'CHO1': { name: 'CHO1', address1: '8061 FOREST LAKES DR', city: 'CHARLOTTESVILLE', state: 'VA', zip: '22911' },
+                    'CLT2': { name: 'CLT2', address1: '10240 Old Dowd Rd', city: 'Charlotte', state: 'NC', zip: '28214' },
+                    'CLT3': { name: 'CLT3', address1: '3400 Morton Mill Rd', city: 'CHARLOTTE', state: 'NC', zip: '28214' },
+                    'CMH2': { name: 'CMH2', address1: '7803 Parksouth Ct', city: 'Columbus', state: 'OH', zip: '43219' },
+                    'CMH3': { name: 'CMH3', address1: '700 GATEWAY BLVD', city: 'Monroe', state: 'OH', zip: '45050' },
+                    'DCA6': { name: 'DCA6', address1: '6001 Bethlehem Blvd', city: 'BALTIMORE', state: 'MD', zip: '21219' },
+                    'DEN2': { name: 'DEN2', address1: '18500 E 40th Ave', city: 'AURORA', state: 'CO', zip: '80011' },
+                    'DEN8': { name: 'DEN8', address1: '2100 W 7th Ave', city: 'BROOMFIELD', state: 'CO', zip: '80023' },
+                    'DET1': { name: 'DET1', address1: '39000 Amrhein RD', city: 'Livonia', state: 'MI', zip: '48150' },
+                    'DET2': { name: 'DET2', address1: '75 Rex Blvd', city: 'Bedford Park', state: 'IL', zip: '60638' },
+                    'DFW6': { name: 'DFW6', address1: '940 W Bethel Rd', city: 'Coppell', state: 'TX', zip: '75019' },
+                    'FAT2': { name: 'FAT2', address1: '3315 N Sunnyside Ave', city: 'Fresno', state: 'CA', zip: '93727' },
+                    'FOE1': { name: 'FOE1', address1: '9400 LEAVENWORTH RD', city: 'KANSAS CITY', state: 'KS', zip: '66109' },
+                    'FTW1': { name: 'FTW1', address1: '33333 LBJ Freeway', city: 'Dallas', state: 'TX', zip: '75241' },
+                    'FTW5': { name: 'FTW5', address1: '1475 AKRON WAY', city: 'FORNEY', state: 'TX', zip: '75126' },
+                    'FWA4': { name: 'FWA4', address1: '9798 Smith Road', city: 'FORT WAYNE', state: 'IN', zip: '46809' },
+                    'GEG2': { name: 'GEG2', address1: '9401 W Geiger Blvd', city: 'SPOKANE', state: 'WA', zip: '99224' },
+                    'GEU2': { name: 'GEU2', address1: '750 Nexus Ave', city: 'Newark', state: 'CA', zip: '94560' },
+                    'GEU3': { name: 'GEU3', address1: '44511 Osgood Rd', city: 'Fremont', state: 'CA', zip: '94539' },
+                    'GSO1': { name: 'GSO1', address1: '2251 SURRETT DR', city: 'HIGH POINT', state: 'NC', zip: '27265' },
+                    'GSP1': { name: 'GSP1', address1: '700 OLD BUNCOMBE RD', city: 'GREENVILLE', state: 'SC', zip: '29609' },
+                    'GYR2': { name: 'GYR2', address1: '17341 W MINNEZONA AVE', city: 'GOODYEAR', state: 'AZ', zip: '85395' },
+                    'GYR3': { name: 'GYR3', address1: '8181 W ROOSEVELT ST', city: 'PHOENIX', state: 'AZ', zip: '85043' },
+                    'HEA2': { name: 'HEA2', address1: '19201 S 20th St', city: 'PHOENIX', state: 'AZ', zip: '85142' },
+                    'HGR6': { name: 'HGR6', address1: '17501 S North Creek Dr', city: 'HAGERSTOWN', state: 'MD', zip: '21740' },
+                    'HIA1': { name: 'HIA1', address1: '22190 Maroone Way', city: 'DORAL', state: 'FL', zip: '33178' },
+                    'HOU8': { name: 'HOU8', address1: '2815 WEST GRAND PARKWAY NORTH', city: 'HUMBLE', state: 'TX', zip: '77346' },
+                    'HSV1': { name: 'HSV1', address1: '3915 Joe Quick Road', city: 'Huntsville', state: 'AL', zip: '35805' },
+                    'IAH3': { name: 'IAH3', address1: '15525 Milner Road', city: 'HOUSTON', state: 'TX', zip: '77032' },
+                    'ICT2': { name: 'ICT2', address1: '3310 N Webb Rd', city: 'PARK CITY', state: 'KS', zip: '67147' },
+                    'IGQ2': { name: 'IGQ2', address1: '23257 S. Central Avenue', city: 'University Park', state: 'IL', zip: '60484' },
+                    'ILG1': { name: 'ILG1', address1: '780 S. DuPont Highway', city: 'NEW CASTLE', state: 'DE', zip: '19720' },
+                    'IND2': { name: 'IND2', address1: '715 Airtech Pkwy', city: 'Plainfield', state: 'IN', zip: '46168' },
+                    'IND5': { name: 'IND5', address1: '800 Perry Road', city: 'Plainfield', state: 'IN', zip: '46168' },
+                    'IND9': { name: 'IND9', address1: '1151 S GRAHAM RD', city: 'GREENWOOD', state: 'IN', zip: '46143' },
+                    'IUSA': { name: 'IUSA', address1: '1041 E 230th St', city: 'Carson', state: 'CA', zip: '90745' },
+                    'JAX3': { name: 'JAX3', address1: '13333 103rd Street', city: 'Jacksonville', state: 'FL', zip: '32210' },
+                    'JVL1': { name: 'JVL1', address1: '1255 Gateway Blvd', city: 'BELOIT', state: 'WI', zip: '53511' },
+                    'LAN2': { name: 'LAN2', address1: '6500 W Mt Hope Hwy', city: 'LANSING', state: 'MI', zip: '48917' },
+                    'LAS1': { name: 'LAS1', address1: '12300 Bermuda Road', city: 'HENDERSON', state: 'NV', zip: '89044' },
+                    'LAS6': { name: 'LAS6', address1: '4955 Boulder Hwy', city: 'LAS VEGAS', state: 'NV', zip: '89122' },
+                    'LAX9': { name: 'LAX9', address1: '11263 Oleander Ave', city: 'FONTANA', state: 'CA', zip: '92337' },
+                    'LBE1': { name: 'LBE1', address1: '100 Commerce Crossing Dr', city: 'NEW STANTON', state: 'PA', zip: '15672' },
+                    'LFT1': { name: 'LFT1', address1: '1919 NW 19TH ST', city: 'DELRAY BEACH', state: 'FL', zip: '33445' },
+                    'LGB4': { name: 'LGB4', address1: '36270 Cassidy Place', city: 'Redlands', state: 'CA', zip: '92374' },
+                    'LGB6': { name: 'LGB6', address1: '2496 W Walnut St', city: 'Rialto', state: 'CA', zip: '92376' },
+                    'LGB8': { name: 'LGB8', address1: '1568 N Linden Ave', city: 'Rialto', state: 'CA', zip: '92376' },
+                    'LIT2': { name: 'LIT2', address1: '11920 Crystal Hill Rd', city: 'Maumelle', state: 'AR', zip: '72113' },
+                    'MCE1': { name: 'MCE1', address1: '8710 Kauffman Ave', city: 'SOUTH PLAINFIELD', state: 'NJ', zip: '07080' },
+                    'MCO2': { name: 'MCO2', address1: '1901 RED CLEVELAND BLVD', city: 'SANFORD', state: 'FL', zip: '32771' },
+                    'MDT1': { name: 'MDT1', address1: '3434 Milgen Road', city: 'Columbus', state: 'GA', zip: '31907' },
+                    'MDT2': { name: 'MDT2', address1: '5959 FULTON INDUSTRIAL BLVD SW', city: 'ATLANTA', state: 'GA', zip: '30336' },
+                    'MDT4': { name: 'MDT4', address1: '7501 SOUTHFIELD RD', city: 'SHREVEPORT', state: 'LA', zip: '71129' },
+                    'MDW2': { name: 'MDW2', address1: '250 Emerald Drive', city: 'Joliet', state: 'IL', zip: '60433' },
+                    'MDW6': { name: 'MDW6', address1: '1125 REMINGTON BLVD', city: 'ROMEOVILLE', state: 'IL', zip: '60446' },
+                    'MDW9': { name: 'MDW9', address1: '2806 W 183rd Street', city: 'Homewood', state: 'IL', zip: '60430' },
+                    'MEM1': { name: 'MEM1', address1: '3292 E Holmes Rd', city: 'Memphis', state: 'TN', zip: '38118' },
+                    'MEM6': { name: 'MEM6', address1: '11505 Progress Way', city: 'OLIVE BRANCH', state: 'MS', zip: '38654' },
+                    'MGE3': { name: 'MGE3', address1: '2960 SHILOH GARLAND DRIVE', city: 'MOBILE', state: 'AL', zip: '36695' },
+                    'MIT2': { name: 'MIT2', address1: '14230 REEVESTON ROAD', city: 'HOUSTON', state: 'TX', zip: '77039' },
+                    'MKC4': { name: 'MKC4', address1: '19645 Waverly Rd', city: 'Edgerton', state: 'KS', zip: '66021' },
+                    'MQJ1': { name: 'MQJ1', address1: '4412 W 300 N, GREENFIELD', city: 'GREENFIELD', state: 'IN', zip: '46140' },
+                    'OAK3': { name: 'OAK3', address1: '255 Park Center Dr', city: 'Patterson', state: 'CA', zip: '95363' },
+                    'OKC2': { name: 'OKC2', address1: '3900 N Wheeler Ave', city: 'OKLAHOMA CITY', state: 'OK', zip: '73118' },
+                    'ONT8': { name: 'ONT8', address1: '24300 Nandina Ave', city: 'Moreno Valley', state: 'CA', zip: '92551' },
+                    'ONT9': { name: 'ONT9', address1: '2125 W San Bernardino Ave', city: 'Redlands', state: 'CA', zip: '92374' },
+                    'ORD2': { name: 'ORD2', address1: '23714 W Amoco Rd', city: 'CHANNAHON', state: 'IL', zip: '60410' },
+                    'ORF2': { name: 'ORF2', address1: '700 Sentara Way', city: 'CHESAPEAKE', state: 'VA', zip: '23320' },
+                    'PBI3': { name: 'PBI3', address1: '180 Fairfield Rd', city: 'FAIRFIELD', state: 'NJ', zip: '07004' },
+                    'PDX7': { name: 'PDX7', address1: '12115 NE Burgess Way', city: 'PORTLAND', state: 'OR', zip: '97230' },
+                    'PHL4': { name: 'PHL4', address1: '21 Roadway Dr', city: 'CARLISLE', state: 'PA', zip: '17015' },
+                    'PHL5': { name: 'PHL5', address1: '500 MCCARTHY DR', city: 'LEWISBERRY', state: 'PA', zip: '17339' },
+                    'PHL6': { name: 'PHL6', address1: '675 Allen Rd', city: 'CARLISLE', state: 'PA', zip: '17015' },
+                    'PHX5': { name: 'PHX5', address1: '16920 W Commerce Drive', city: 'Goodyear', state: 'AZ', zip: '85338' },
+                    'PHX7': { name: 'PHX7', address1: '800 N 75th Ave', city: 'Phoenix', state: 'AZ', zip: '85043' },
+                    'PHX9': { name: 'PHX9', address1: '16600 W WHISPERING WIND DR', city: 'SURPRISE', state: 'AZ', zip: '85374' },
+                    'PIT2': { name: 'PIT2', address1: '801 Oakleigh Dr', city: 'IMPERIAL', state: 'PA', zip: '15126' },
+                    'PSC2': { name: 'PSC2', address1: '1901 MEAD AVE', city: 'YAKIMA', state: 'WA', zip: '98902' },
+                    'PSR2': { name: 'PSR2', address1: '900 LENORA ST', city: 'SEATTLE', state: 'WA', zip: '98121' },
+                    'RDU2': { name: 'RDU2', address1: '2150 US HWY 70 Business West', city: 'SMITHFIELD', state: 'NC', zip: '27577' },
+                    'RDU4': { name: 'RDU4', address1: '6309 Bragg Blvd', city: 'FAYETTEVILLE', state: 'NC', zip: '28303' },
+                    'RFD2': { name: 'RFD2', address1: '11500 Freeman Road', city: 'HUNTLEY', state: 'IL', zip: '60142' },
+                    'RIC1': { name: 'RIC1', address1: '5000 Commerce Way', city: 'DINWIDDIE', state: 'VA', zip: '23841' },
+                    'RMN3': { name: 'RMN3', address1: '220 Centreport Parkwa', city: 'FREDERICKSBURG', state: 'VA', zip: '22406' },
+                    'RYY2': { name: 'RYY2', address1: '2200 NW Delancey St', city: 'SEATTLE', state: 'WA', zip: '98107' },
+                    'SAT1': { name: 'SAT1', address1: '6000 Enterprise Avenue', city: 'Schertz', state: 'TX', zip: '78154' },
+                    'SAT4': { name: 'SAT4', address1: '301 LOOKOUT RD', city: 'CIBOLO', state: 'TX', zip: '78108' },
+                    'SAV3': { name: 'SAV3', address1: '1001 AIRWAYS AVE', city: 'SAVANNAH', state: 'GA', zip: '31408' },
+                    'SBD1': { name: 'SBD1', address1: '3388 S Cactus Ave', city: 'BLOOMINGTON', state: 'CA', zip: '92316' },
+                    'SBD2': { name: 'SBD2', address1: '1494 S WATERMAN AVE', city: 'SAN BERNARDINO', state: 'CA', zip: '92408' },
+                    'SCK1': { name: 'SCK1', address1: '4532 NEWCASTLE RD', city: 'STOCKTON', state: 'CA', zip: '95215' },
+                    'SCK4': { name: 'SCK4', address1: '6001 S AUSTIN RD', city: 'STOCKTON', state: 'CA', zip: '95215' },
+                    'SJC7': { name: 'SJC7', address1: '188 Mountain House Pkwy', city: 'Tracy', state: 'CA', zip: '95377' },
+                    'SLA6': { name: 'SLA6', address1: '9350 S 150 E', city: 'SANDY', state: 'UT', zip: '84070' },
+                    'SLC2': { name: 'SLC2', address1: '7148 W. Old Bingham Hwy', city: 'West Jordan', state: 'UT', zip: '84081' },
+                    'SMF3': { name: 'SMF3', address1: '3923 S B ST', city: 'Stockton', state: 'CA', zip: '95206' },
+                    'SMF6': { name: 'SMF6', address1: '7740 S AUSTIN RD', city: 'STOCKTON', state: 'CA', zip: '95215' },
+                    'SNA4': { name: 'SNA4', address1: '2496 W Walnut St', city: 'Rialto', state: 'CA', zip: '92376' },
+                    'STL3': { name: 'STL3', address1: '3200 E SAWYER RD', city: 'REPUBLIC', state: 'MO', zip: '65738' },
+                    'STL4': { name: 'STL4', address1: '3050 GATEWAY COMMERCE CENTER DR S', city: 'Edwardsville', state: 'IL', zip: '62025' },
+                    'SWF1': { name: 'SWF1', address1: '19 Commerce Rd', city: 'NEWBURGH', state: 'NY', zip: '12550' },
+                    'SWF2': { name: 'SWF2', address1: '76 Patriot Way', city: 'Hopewell Junction', state: 'NY', zip: '12533' },
+                    'TEB3': { name: 'TEB3', address1: '2651 Oldmans Creek Rd', city: 'Swedesboro', state: 'NJ', zip: '08085' },
+                    'TEB4': { name: 'TEB4', address1: '4 INTERNATIONAL PL', city: 'LOGAN TOWNSHIP', state: 'NJ', zip: '08085' },
+                    'TEB6': { name: 'TEB6', address1: '22 Hightstown Cranbury State Road', city: 'Cranbury', state: 'NJ', zip: '08512' },
+                    'TEB9': { name: 'TEB9', address1: '601 Randolph Road', city: 'SOMERSET', state: 'NJ', zip: '08873' },
+                    'TMB8': { name: 'TMB8', address1: '1901 Tchulahoma Rd', city: 'SOUTHAVEN', state: 'MS', zip: '38671' },
+                    'TPA2': { name: 'TPA2', address1: '1760 County Line Road', city: 'Lakeland', state: 'FL', zip: '33811' },
+                    'TPA3': { name: 'TPA3', address1: '676 C Fred Jones Blvd', city: 'Auburndale', state: 'FL', zip: '33823' },
+                    'VGT2': { name: 'VGT2', address1: '6401 Howdy Wells Ave', city: 'LAS VEGAS', state: 'NV', zip: '89115' },
+                    'WBW2': { name: 'WBW2', address1: '1 Cherry Ln', city: 'NEW CASTLE', state: 'DE', zip: '19720' },
+                    'XBN3': { name: 'XBN3', address1: '2400 Stateline Rd', city: 'W Southaven', state: 'MS', zip: '38671' },
+                    'XCH2': { name: 'XCH2', address1: '2150 Dean Forest Road', city: 'Garden City', state: 'GA', zip: '31408' },
+                    'XIN5': { name: 'XIN5', address1: '710 South Girls School Road', city: 'Indianapolis', state: 'IN', zip: '46231' },
+                    'XMI3': { name: 'XMI3', address1: '2215 GRAND AVE', city: 'WAUKEGAN', state: 'IL', zip: '60085' },
+                    // CANADA FCs (18 total)
+                    'XCAB': { name: 'XCAB', address1: '2595 Britannia Road East', city: 'Mississauga', state: 'ON', zip: 'L4W 2A3' },
+                    'YEG1': { name: 'YEG1', address1: '1510 19 Avenue', city: 'Nisku', state: 'AB', zip: 'T9E 7Z5' },
+                    'YEG2': { name: 'YEG2', address1: '1901 Sparrow Drive', city: 'Nisku', state: 'AB', zip: 'T9E 8A7' },
+                    'YHM1': { name: 'YHM1', address1: '855 Brock Road South', city: 'Pickering', state: 'ON', zip: 'L1W 3X8' },
+                    'YOO1': { name: 'YOO1', address1: '16191 Blundell Road', city: 'Pitt Meadows', state: 'BC', zip: 'V3Y 0G1' },
+                    'YOW1': { name: 'YOW1', address1: '5225 Boundary Road', city: 'Ottawa', state: 'ON', zip: 'K1G 3N2' },
+                    'YOW3': { name: 'YOW3', address1: '5405 South Gower Drive', city: 'Ottawa', state: 'ON', zip: 'K0A 2Z0' },
+                    'YVR2': { name: 'YVR2', address1: '450 Derwent Way', city: 'Delta', state: 'BC', zip: 'V3M 5Y9' },
+                    'YVR3': { name: 'YVR3', address1: '4949 190 Street', city: 'Surrey', state: 'BC', zip: 'V3S 0J2' },
+                    'YVR4': { name: 'YVR4', address1: '1115 CLIVEDEN AVE', city: 'DELTA', state: 'BC', zip: 'V3M 5Y6' },
+                    'YXU1': { name: 'YXU1', address1: '1550 CLARKE RD', city: 'LONDON', state: 'ON', zip: 'N6G 5L1' },
+                    'YXX2': { name: 'YXX2', address1: '23270 Wilfert Road', city: 'Richmond Hill', state: 'ON', zip: 'L4S 2W7' },
+                    'YYC1': { name: 'YYC1', address1: '11701 11th Street NE', city: 'Calgary', state: 'AB', zip: 'T3P 0B5' },
+                    'YYC4': { name: 'YYC4', address1: '9202 BARLOW TRAIL NE', city: 'CALGARY', state: 'AB', zip: 'T3J 0G9' },
+                    'YYZ3': { name: 'YYZ3', address1: '2750 Peddie Road', city: 'Milton', state: 'ON', zip: 'L9T 6Y9' },
+                    'YYZ4': { name: 'YYZ4', address1: '6363 MILLCREEK DR', city: 'MISSISSAUGA', state: 'ON', zip: 'L5N 1L8' },
+                    'YYZ7': { name: 'YYZ7', address1: '5885 Mclaughlin Rd', city: 'Mississauga', state: 'ON', zip: 'L5R 1B8' },
+                    'YYZ9': { name: 'YYZ9', address1: '2275 Upper Middle Rd', city: 'OAKVILLE', state: 'ON', zip: 'L6H 0C3' },
+                    // MEXICO FCs (7 total)
+                    'BJX1': { name: 'BJX1', address1: 'Blvd. San José de los Reynoso 402', city: 'San José De Los Reynoso', state: 'GTO', zip: '36251' },
+                    'GDL1': { name: 'GDL1', address1: 'Carr Tlajomulco-San Miguel Cuyutlán Km3.8', city: 'Tlajomulco de Zúñiga', state: 'JAL', zip: '45640' },
+                    'MEX2': { name: 'MEX2', address1: 'Av. Ferrocarril Mz 6 Lt 3', city: 'San Martín Obispo', state: 'EDO MEX', zip: '54769' },
+                    'MEX3': { name: 'MEX3', address1: 'km. 35+816 autopista México - Querétaro', city: 'TEPOTZOTLÁN', state: 'EDO MEX', zip: '54608' },
+                    'MEX6': { name: 'MEX6', address1: 'C. Hacienda de Xalpa Lt 2 Mza 16', city: 'Via Jose Lopez Portillo', state: 'EDO MEX', zip: '55429' },
+                    'MTY1': { name: 'MTY1', address1: 'Carr Miguel Alemán KM 21', city: 'Apodaca', state: 'NL', zip: '66627' },
+                    'TIJ1': { name: 'TIJ1', address1: 'Carretera Tecate - Tijuana 22745', city: 'Redondo', state: 'Tijuana BC', zip: '22557' },
+                    // UK-EU FCs (7 total)
+                    'CWL1': { name: 'CWL1', address1: 'Unit 1, Tir Llwyd Enterprise Park', city: 'Rhyl', state: '', zip: 'LL18 5JZ' },
+                    'DSA6': { name: 'DSA6', address1: 'Balby Carr Bank', city: 'Doncaster', state: '', zip: 'DN4 5JS' },
+                    'EMA1': { name: 'EMA1', address1: 'Gateway 11', city: 'Castle Donington', state: '', zip: 'DE74 2PY' },
+                    'EMA2': { name: 'EMA2', address1: '5 Hunter Boulevard', city: 'Magna Park', state: '', zip: 'LE17 5PH' },
+                    'LCY3': { name: 'LCY3', address1: '1 More London Place', city: 'London', state: '', zip: 'SE1 2AF' },
+                    'LTN1': { name: 'LTN1', address1: 'Arenson Way', city: 'Dunstable', state: '', zip: 'LU5 5HT' },
+                    'ORY1': { name: 'ORY1', address1: 'Rue de Satolas', city: 'Satolas-et-Bonce', state: '', zip: '69330' }
+                };
+                console.log('FC addresses loaded:', Object.keys(fcAddresses).length); // All 161 FCs from database
+            } catch (error) {
+                console.error('Error loading FC addresses:', error);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('frdDate').value = today;
+            loadFCAddresses();
+        });
+        
+        // File upload handlers
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+        
+        uploadSection.addEventListener('click', (e) => {
+            if (e.target !== fileInput && !e.target.closest('.file-input-label')) {
+                fileInput.click();
+            }
+        });
+        
+        function handleFileUpload(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                showStatus('Please upload an Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+            
+            uploadedFile = file;
+            uploadSection.classList.add('has-file');
+            
+            // Display file info
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').style.display = 'block';
+            
+            // Read file and analyze
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                document.getElementById('sheetCount').textContent = workbook.SheetNames.length;
+                
+                // Check for accept unis sheet
+                if (workbook.SheetNames.includes('accept unis')) {
+                    const worksheet = workbook.Sheets['accept unis'];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Filter for positive cartons
+                    const validData = jsonData.filter(row => row['CARTONS'] > 0);
+                    document.getElementById('recordCount').textContent = validData.length;
+                    
+                    // Get unique fulfillment centers and check for ARNs
+                    const fcArnMap = {};
+                    const missingARNs = [];
+                    
+                    validData.forEach(row => {
+                        const fc = row['Fulfillment Center'];
+                        const arn = row['Consolidation ID'] || row['ARN'] || row['Reference Number'] || '';
+                        
+                        if (fc && !fcArnMap[fc]) {
+                            fcArnMap[fc] = arn.toString().trim();
+                            if (!arn || arn.toString().trim().length !== 11) {
+                                missingARNs.push(fc);
+                            }
+                        }
+                    });
+                    
+                    // Display ARN status
+                    const arnStatus = document.getElementById('arnStatus');
+                    const arnSection = document.getElementById('arnSection');
+                    
+                    if (missingARNs.length === 0) {
+                        // Check for FC addresses
+                        const missingAddresses = [];
+                        Object.keys(fcArnMap).forEach(fc => {
+                            if (!fcAddresses[fc]) {
+                                missingAddresses.push(fc);
+                            }
+                        });
+                        
+                        let addressStatus = '';
+                        if (missingAddresses.length > 0) {
+                            addressStatus = `
+                                <div style="margin-top: 15px; padding: 10px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 5px;">
+                                    <div style="color: #92400e; font-weight: 600;">
+                                        ⚠️ Note: No addresses found for: ${missingAddresses.join(', ')}
+                                    </div>
+                                    <p style="color: #78350f; font-size: 12px; margin-top: 5px;">
+                                        These FCs will be included but without shipping address details.
+                                    </p>
+                                </div>
+                            `;
+                        }
+                        
+                        arnStatus.innerHTML = `
+                            <div style="color: #14532d; font-weight: 600;">
+                                ✅ All Fulfillment Centers have valid ARNs:
+                            </div>
+                            <ul style="margin-top: 10px; color: #166534;">
+                                ${Object.entries(fcArnMap).map(([fc, arn]) => 
+                                    `<li>${fc}: ${arn}</li>`
+                                ).join('')}
+                            </ul>
+                            ${addressStatus}
+                        `;
+                        arnSection.style.background = '#f0fdf4';
+                        arnSection.style.borderColor = '#86efac';
+                    } else {
+                        arnStatus.innerHTML = `
+                            <div style="color: #991b1b; font-weight: 600;">
+                                ⚠️ Missing or Invalid ARNs for the following Fulfillment Centers:
+                            </div>
+                            <ul style="margin-top: 10px; color: #dc2626;">
+                                ${missingARNs.map(fc => `<li>${fc}</li>`).join('')}
+                            </ul>
+                            <p style="margin-top: 10px; color: #7c2d12;">
+                                Please ensure the Consolidation ID column contains 11-digit ARNs for all FCs.
+                            </p>
+                        `;
+                        arnSection.style.background = '#fef2f2';
+                        arnSection.style.borderColor = '#fca5a5';
+                    }
+                    
+                    // Show settings and action buttons
+                    document.getElementById('settingsSection').style.display = 'block';
+                    document.getElementById('actionButtons').style.display = 'block';
+                    
+                    // Enable/disable process button based on ARN availability
+                    document.getElementById('processBtn').disabled = missingARNs.length > 0;
+                    
+                } else {
+                    showStatus('Error: "accept unis" sheet not found in the file', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function showStatus(message, type) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message status-' + type;
+            statusMessage.style.display = 'block';
+        }
+        
+        function updateProgress(percent, message) {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressFill').textContent = percent + '%';
+            if (message) {
+                showStatus(message, 'success');
+            }
+        }
+        
+        async function processFile() {
+            if (!uploadedFile) {
+                showStatus('Please upload a file first', 'error');
+                return;
+            }
+            
+            const frdDate = document.getElementById('frdDate').value;
+            const productCategory = document.getElementById('productCategory').value.trim().toLowerCase() || 'general';
+            
+            if (!frdDate) {
+                showStatus('Please select an FRD date', 'error');
+                return;
+            }
+            
+            // Disable process button
+            document.getElementById('processBtn').disabled = true;
+            updateProgress(10, 'Reading file...');
+            
+            // Process the file
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    updateProgress(30, 'Parsing Excel data...');
+                    
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const worksheet = workbook.Sheets['accept unis'];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    updateProgress(50, 'Processing PO data...');
+                    
+                    // Filter for positive cartons
+                    const validData = jsonData.filter(row => row['CARTONS'] > 0);
+                    
+                    // Extract ARNs from data
+                    const arnMap = {};
+                    validData.forEach(row => {
+                        const fc = row['Fulfillment Center'];
+                        const arn = row['Consolidation ID'] || row['ARN'] || row['Reference Number'] || '';
+                        
+                        if (fc && !arnMap[fc]) {
+                            arnMap[fc] = arn.toString().trim();
+                        }
+                    });
+                    
+                    // Validate ARNs
+                    const missingARNs = [];
+                    Object.entries(arnMap).forEach(([fc, arn]) => {
+                        if (!arn || arn.length !== 11 || !/^\d{11}$/.test(arn)) {
+                            missingARNs.push(fc);
+                        }
+                    });
+                    
+                    if (missingARNs.length > 0) {
+                        showStatus(`Missing or invalid ARNs for: ${missingARNs.join(', ')}. Please update the Consolidation ID column in your file.`, 'error');
+                        document.getElementById('processBtn').disabled = false;
+                        return;
+                    }
+                    
+                    // Group by FC and process
+                    const groupedData = {};
+                    validData.forEach(row => {
+                        const fc = row['Fulfillment Center'];
+                        if (!fc) return;
+                        
+                        if (!groupedData[fc]) {
+                            groupedData[fc] = {};
+                        }
+                        
+                        const po = row['Order/PO Number'];
+                        if (!groupedData[fc][po]) {
+                            groupedData[fc][po] = [];
+                        }
+                        
+                        groupedData[fc][po].push({
+                            sku: row['SKU'] || row['External ID'], // Use SKU field primarily
+                            quantity: row['Total Qty to Fulfill'] || 0
+                        });
+                    });
+                    
+                    updateProgress(70, 'Building FTP format...');
+                    
+                    // Build FTP data structure
+                    const ftpData = buildFTPStructure(groupedData, arnMap, frdDate);
+                    
+                    updateProgress(90, 'Creating Excel file...');
+                    
+                    // Create Excel file
+                    const outputWorkbook = createFTPExcel(ftpData);
+                    
+                    updateProgress(100, 'Complete!');
+                    
+                    // Generate filename
+                    const dateStr = new Date().toLocaleDateString('en-US', { 
+                        month: 'numeric', 
+                        day: 'numeric' 
+                    }).replace('/', '_');
+                    const fileName = `UNIS_Pick_List_FTP_Upload_${dateStr}_unis_${productCategory}.xlsx`;
+                    
+                    // Save file
+                    XLSX.writeFile(outputWorkbook, fileName);
+                    
+                    // Show results
+                    displayResults(ftpData, fileName);
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    showStatus('Error processing file: ' + error.message, 'error');
+                } finally {
+                    document.getElementById('processBtn').disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(uploadedFile);
+        }
+        
+        function buildFTPStructure(groupedData, arnMap, frdDate) {
+            const ftpRows = [];
+            // Parse the date directly from the input string to avoid timezone issues
+            // frdDate comes as "YYYY-MM-DD" from the date input
+            const dateParts = frdDate.split('-');
+            const year = dateParts[0];
+            const month = dateParts[1];
+            const day = dateParts[2];
+            
+            // Create dateStr in MMDDYYYY format using the exact input values
+            const dateStr = month + day + year;
+            
+            // Create column headers array (to be reused between shipments)
+            const columnHeaders = createHeaderRow();
+            
+            // Add initial column headers (only if we have data)
+            if (Object.keys(groupedData).length > 0) {
+                ftpRows.push(columnHeaders.slice()); // Use slice to create a copy
+            }
+            
+            // Process each FC
+            const fcKeys = Object.keys(groupedData);
+            fcKeys.forEach((fc, fcIndex) => {
+                const arn = arnMap[fc];
+                const poGroups = groupedData[fc];
+                const poNumbers = Object.keys(poGroups);
+                
+                // Get FC address
+                const fcAddress = fcAddresses[fc] || {
+                    name: fc,
+                    address1: '',
+                    city: '',
+                    state: '',
+                    zip: ''
+                };
+                
+                // Create CustomerSONo and BOLNo
+                const customerSONo = dateStr + fc;
+                const bolNo = customerSONo + '-U';
+                
+                // Create ScheduledDate in format MMDDYYYY using FRD date (no quote prefix)
+                const scheduledDate = dateStr.substring(0, 8);
+                
+                // Create HDR row with shipping addresses
+                const hdrRow = createEmptyRow();
+                hdrRow[0] = 'HDR';
+                hdrRow[1] = '889'; // CompanyID
+                hdrRow[2] = 'SIMMOD0001'; // CustomerID
+                hdrRow[3] = poNumbers.join(','); // PONo - combine with comma
+                hdrRow[4] = arn; // ReferenceNo
+                hdrRow[5] = customerSONo; // CustomerSONo
+                hdrRow[7] = bolNo; // BOLNo
+                hdrRow[14] = scheduledDate; // ScheduledDate (without quote prefix)
+                
+                // Add shipping address (columns 34-40)
+                hdrRow[34] = fcAddress.name || fc; // ShipToName
+                hdrRow[35] = fcAddress.address1 || ''; // ShipToAddress1
+                hdrRow[36] = ''; // ShipToAddress2
+                hdrRow[37] = fcAddress.city || ''; // ShipToCity
+                hdrRow[38] = fcAddress.state || ''; // ShipToState
+                hdrRow[39] = fcAddress.zip || ''; // ShipToZipCode
+                hdrRow[40] = 'US'; // ShipToCountry
+                
+                // Add freight and shipping method fields (required for FTP upload)
+                hdrRow[77] = 'Collect'; // FreightTerm
+                hdrRow[78] = 'LTL'; // ShipMethod
+                hdrRow[80] = 'UNKN'; // SCACCode
+                
+                ftpRows.push(hdrRow);
+                
+                // Create DTL header row with all field names
+                const dtlHeaderRow = createEmptyRow();
+                dtlHeaderRow[0] = 'DTL';
+                dtlHeaderRow[1] = 'LineNo';
+                dtlHeaderRow[2] = 'SupplierID\n';
+                dtlHeaderRow[3] = 'ItemID';
+                dtlHeaderRow[4] = 'BuyerItemID \n';
+                dtlHeaderRow[5] = 'LotNo';
+                dtlHeaderRow[6] = 'OrderedQty';
+                dtlHeaderRow[7] = 'UnitPrice';
+                dtlHeaderRow[8] = 'PrePackQty';
+                dtlHeaderRow[9] = 'PrePackDescription';
+                dtlHeaderRow[10] = 'PoundPerPackage';
+                dtlHeaderRow[11] = 'Length';
+                dtlHeaderRow[12] = 'Width';
+                dtlHeaderRow[13] = 'Height';
+                dtlHeaderRow[14] = 'Pallets';
+                dtlHeaderRow[15] = 'CustomerPallets';
+                dtlHeaderRow[16] = 'PalletWeight';
+                dtlHeaderRow[17] = 'ItemNote';
+                dtlHeaderRow[18] = 'UPCCode';
+                dtlHeaderRow[19] = 'PackageConfigure';
+                dtlHeaderRow[20] = 'UOM';
+                dtlHeaderRow[21] = 'DynTxtPropertyValue01';
+                dtlHeaderRow[22] = 'DynTxtPropertyValue02';
+                dtlHeaderRow[23] = 'DynTxtPropertyValue03';
+                dtlHeaderRow[24] = 'DynTxtPropertyValue04';
+                dtlHeaderRow[25] = 'DynTxtPropertyValue05';
+                dtlHeaderRow[26] = 'DynTxtPropertyValue06';
+                dtlHeaderRow[27] = 'DynTxtPropertyValue07';
+                dtlHeaderRow[28] = 'DynTxtPropertyValue08';
+                dtlHeaderRow[29] = 'DynTxtPropertyValue09';
+                dtlHeaderRow[30] = 'Original Item';
+                dtlHeaderRow[31] = 'Product Number';
+                
+                ftpRows.push(dtlHeaderRow);
+                
+                // Create DTL data rows for all items in all POs for this FC
+                let lineNo = 1;
+                poNumbers.forEach(po => {
+                    poGroups[po].forEach(item => {
+                        const dtlRow = createEmptyRow();
+                        dtlRow[0] = 'DTL';
+                        dtlRow[1] = String(lineNo);
+                        dtlRow[3] = item.sku; // ItemID
+                        dtlRow[6] = String(item.quantity); // OrderedQty
+                        dtlRow[20] = 'EA'; // UOM
+                        
+                        ftpRows.push(dtlRow);
+                        lineNo++;
+                    });
+                });
+                
+                // Add column headers between FC groups (not after the last one)
+                if (fcIndex < fcKeys.length - 1) {
+                    ftpRows.push(columnHeaders.slice()); // Use slice to create a copy
+                }
+            });
+            
+            return ftpRows;
+        }
+        
+        function createHeaderRow() {
+            // Create the header row with all column names matching the reference file
+            const headers = [
+                ' ', 'CompanyID', 'CustomerID', 'PONo', 'ReferenceNo', 'CustomerSONo', 
+                'BatchNo', 'BOLNo', 'ReferenceNo01', 'ReferenceNo02', 'ReferenceNo03', 
+                'ReferenceNo04', 'ReferenceNo05', 'OrderedDate', 'ScheduledDate', 
+                'CanceledDate', 'ShipNotBefore', 'ShipNoLater', 'MABD', 'RoutedDate', 
+                'ReferenceDate01', 'ReferenceDate02', 'SoldToName', 'SoldToAddress1', 
+                'SoldToAddress2', 'SoldToCity', 'SoldToState', 'SoldToZipCode', 
+                'SoldToCountry', 'SoldToContact', 'SoldToPhone', 'SoldToExtension', 
+                'SoldToFax', 'SoldToEmail', 'ShipToName', 'ShipToAddress1', 
+                'ShipToAddress2', 'ShipToCity', 'ShipToState', 'ShipToZipCode', 
+                'ShipToCountry', 'ShipToContact', 'ShipToPhone', 'ShipToExtension', 
+                'ShipToFax', 'ShipToEmail', 'ShipToStoreNo', 'ShipToBatchCode', 
+                'ShipToHome', 'StoreName', 'StoreAddress1', 'StoreAddress2', 
+                'StoreCity', 'StoreState', 'StoreZipCode', 'StoreCountry', 
+                'StoreContact', 'StorePhone', 'StoreExtension', 'StoreFax', 
+                'StoreEmail', 'StoreStoreNo', 'BillToName', 'BillToAddress1', 
+                'BillToAddress2', 'BillToCity', 'BillToState', 'BillToZipCode', 
+                'BillToCountry', 'BillToContact', 'BillToPhone', 'BillToExtension', 
+                'BillToFax', 'BillToEmail', 'BillToStoreNo', 'BillToBatchCode', 
+                'BillToHome', 'FreightTerm', 'ShipMethod', 'Delivery Service', 
+                'SCACCode', 'CarrierName', 'ShippingAccountNo', 'ContainerSize', 
+                'TotalWeight', 'TotalCbft', 'Note', 'BOLNote', 'LabelNote', 
+                'DynTxtPropertyValue01', 'DynTxtPropertyValue02', 'DynTxtPropertyValue03', 
+                'DynTxtPropertyValue04', 'DynTxtPropertyValue05', 'DynTxtPropertyValue06', 
+                'DynTxtPropertyValue07', 'DynTxtPropertyValue08', 'DynTxtPropertyValue09', 
+                'DynTxtPropertyValue10', 'Order Type (940, 850,)'
+            ];
+            
+            const headerRow = createEmptyRow();
+            headers.forEach((header, index) => {
+                headerRow[index] = header;
+            });
+            
+            return headerRow;
+        }
+        
+        function createEmptyRow() {
+            // Create array with 100 columns (matching the FTP format)
+            return new Array(100).fill('');
+        }
+        
+        function createFTPExcel(ftpData) {
+            // Column headers from the reference file
+            const headers = [
+                ' ', 'CompanyID', 'CustomerID', 'PONo', 'ReferenceNo', 'CustomerSONo', 
+                'BatchNo', 'BOLNo', 'ReferenceNo01', 'ReferenceNo02', 'ReferenceNo03', 
+                'ReferenceNo04', 'ReferenceNo05', 'OrderedDate', 'ScheduledDate', 
+                'CanceledDate', 'ShipNotBefore', 'ShipNoLater', 'MABD', 'RoutedDate', 
+                'ReferenceDate01', 'ReferenceDate02', 'SoldToName', 'SoldToAddress1', 
+                'SoldToAddress2', 'SoldToCity', 'SoldToState', 'SoldToZipCode', 
+                'SoldToCountry', 'SoldToContact', 'SoldToPhone', 'SoldToExtension', 
+                'SoldToFax', 'SoldToEmail', 'ShipToName', 'ShipToAddress1', 
+                'ShipToAddress2', 'ShipToCity', 'ShipToState', 'ShipToZipCode', 
+                'ShipToCountry', 'ShipToContact', 'ShipToPhone', 'ShipToExtension', 
+                'ShipToFax', 'ShipToEmail', 'ShipToStoreNo', 'ShipToBatchCode', 
+                'ShipToHome', 'StoreName', 'StoreAddress1', 'StoreAddress2', 
+                'StoreCity', 'StoreState', 'StoreZipCode', 'StoreCountry', 
+                'StoreContact', 'StorePhone', 'StoreExtension', 'StoreFax', 
+                'StoreEmail', 'StoreStoreNo', 'BillToName', 'BillToAddress1', 
+                'BillToAddress2', 'BillToCity', 'BillToState', 'BillToZipCode', 
+                'BillToCountry', 'BillToContact', 'BillToPhone', 'BillToExtension', 
+                'BillToFax', 'BillToEmail', 'BillToStoreNo', 'BillToBatchCode', 
+                'BillToHome', 'FreightTerm', 'ShipMethod', 'Delivery Service', 
+                'SCACCode', 'CarrierName', 'ShippingAccountNo', 'ContainerSize', 
+                'TotalWeight', 'TotalCbft', 'Note', 'BOLNote', 'LabelNote', 
+                'DynTxtPropertyValue01', 'DynTxtPropertyValue02', 'DynTxtPropertyValue03', 
+                'DynTxtPropertyValue04', 'DynTxtPropertyValue05', 'DynTxtPropertyValue06', 
+                'DynTxtPropertyValue07', 'DynTxtPropertyValue08', 'DynTxtPropertyValue09', 
+                'DynTxtPropertyValue10', 'Order Type (940, 850,)'
+            ];
+            
+            // Create worksheet data as array of arrays
+            const wsData = [];
+            
+            // Process each row from ftpData
+            ftpData.forEach((row, rowIndex) => {
+                const rowArray = [];
+                // Check if this is a header row
+                const isHeaderRow = row[0] === ' ' && row[1] === 'CompanyID';
+                
+                if (isHeaderRow) {
+                    // For header rows, use the headers array
+                    headers.forEach(header => {
+                        rowArray.push(header);
+                    });
+                } else {
+                    // For data rows, use the actual values
+                    for (let i = 0; i < headers.length; i++) {
+                        const value = row[i];
+                        if (value === '' || value === null || value === undefined) {
+                            rowArray.push(null);
+                        } else {
+                            // Ensure all values are strings for text formatting
+                            rowArray.push(String(value));
+                        }
+                    }
+                }
+                wsData.push(rowArray);
+            });
+            
+            // Create worksheet from array of arrays
+            const ws = XLSX.utils.aoa_to_sheet(wsData, {cellStyles: true});
+            
+            // Apply text formatting to all cells
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell_address = XLSX.utils.encode_cell({c:C, r:R});
+                    if (ws[cell_address]) {
+                        // Force text format for all cells
+                        ws[cell_address].t = 's';
+                        // Special handling for ScheduledDate column (column 14)
+                        if (C === 14 && ws[cell_address].v) {
+                            // Ensure it's a clean string without quotes
+                            ws[cell_address].v = String(ws[cell_address].v).replace(/^'/, '');
+                        }
+                    }
+                }
+            }
+            
+            // Create workbook with specific options
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+            
+            // Set workbook properties for better compatibility
+            wb.Props = {
+                Title: "UNIS Pick List FTP Upload",
+                Subject: "FTP Upload File",
+                Author: "UNIS System",
+                CreatedDate: new Date()
+            };
+            
+            processedData = { workbook: wb, data: ftpData };
+            
+            return wb;
+        }
+        
+        function displayResults(ftpData, fileName) {
+            // Calculate statistics
+            let poCount = 0;
+            let itemCount = 0;
+            let fcCount = 0;
+            let totalQuantity = 0;
+            let fcsWithAddresses = 0;
+            
+            ftpData.forEach(row => {
+                // Skip header rows
+                const isHeaderRow = row[0] === ' ' && row[1] === 'CompanyID';
+                if (isHeaderRow) return;
+                
+                if (row[0] === 'HDR') {
+                    fcCount++;
+                    poCount += row[3].split(',').length; // Count comma-separated POs
+                    // Check if address was found
+                    if (row[35]) fcsWithAddresses++;
+                } else if (row[0] === 'DTL' && row[1] !== 'LineNo') {
+                    itemCount++;
+                    totalQuantity += parseInt(row[6]) || 0;
+                }
+            });
+            
+            // Update stats
+            document.getElementById('statPOs').textContent = poCount;
+            document.getElementById('statItems').textContent = itemCount;
+            document.getElementById('statFCs').textContent = `${fcCount} (${fcsWithAddresses} with addresses)`;
+            document.getElementById('statQuantity').textContent = totalQuantity.toLocaleString();
+            
+            // Create preview
+            const previewBody = document.getElementById('previewBody');
+            previewBody.innerHTML = '';
+            
+            let previewCount = 0;
+            ftpData.forEach(row => {
+                if (previewCount >= 10) return;
+                
+                // Check if it's a header row
+                const isHeaderRow = row[0] === ' ' && row[1] === 'CompanyID';
+                
+                if (isHeaderRow) {
+                    const tr = document.createElement('tr');
+                    tr.style.backgroundColor = '#f0f4f8';
+                    tr.style.fontStyle = 'italic';
+                    tr.innerHTML = `
+                        <td colspan="5" style="text-align: center; color: #667eea;">
+                            --- Column Headers Row ---
+                        </td>
+                    `;
+                    previewBody.appendChild(tr);
+                    previewCount++;
+                } else if (row[0] === 'HDR' || (row[0] === 'DTL' && row[1] !== 'LineNo')) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row[0]}</td>
+                        <td>${row[0] === 'HDR' ? row[3] : '-'}</td>
+                        <td>${row[0] === 'HDR' ? row[5] : '-'}</td>
+                        <td>${row[0] === 'DTL' ? row[3] : '-'}</td>
+                        <td>${row[0] === 'DTL' ? row[6] : '-'}</td>
+                    `;
+                    previewBody.appendChild(tr);
+                    previewCount++;
+                }
+            });
+            
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            // Scroll to results
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function resetForm() {
+            uploadedFile = null;
+            processedData = null;
+            
+            // Reset UI
+            uploadSection.classList.remove('has-file');
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('settingsSection').style.display = 'none';
+            document.getElementById('actionButtons').style.display = 'none';
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            // Reset inputs
+            fileInput.value = '';
+            document.getElementById('productCategory').value = '';
+            
+            // Reset date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('frdDate').value = today;
+            
+            // Clear ARN status
+            document.getElementById('arnStatus').innerHTML = '';
+            
+            // Reset progress
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressFill').textContent = '0%';
+        }
+    </script>
+</body>
+</html>
