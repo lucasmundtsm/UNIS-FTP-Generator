@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PO Upload to FTP Pick List Converter - UNIS</title>
+    <title>PO Upload to FTP Pick List Converter - UNIS (v2.0 - SKU Consolidation)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2a44b8 0%, #261da5 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -60,7 +60,7 @@
         }
         
         .upload-section.dragover {
-            border-color: #667eea;
+            border-color: #233aa1;
             background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
             transform: scale(1.02);
         }
@@ -73,7 +73,7 @@
         .file-input-label {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1d39b4 0%, #1d1aac 100%);
             color: white;
             border-radius: 10px;
             cursor: pointer;
@@ -231,7 +231,7 @@
         }
         
         .progress-fill {
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #3b58d8, #2213af);
             height: 100%;
             width: 0%;
             transition: width 0.3s ease;
@@ -338,7 +338,7 @@
         }
         
         .preview-table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2545d1 0%, #0e1b92 100%);
             color: white;
             padding: 12px;
             text-align: left;
@@ -358,8 +358,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚚 PO Upload to FTP Pick List Converter</h1>
+            <h1>PO Upload to FTP Pick List Converter</h1>
             <p>Automatically transform Amazon PO Upload files into UNIS Pick List FTP format with ARN extraction</p>
+            <p style="font-size: 0.9em; opacity: 0.9;">v2.0 - Now consolidates duplicate SKUs within shipments for correct FTP processing</p>
         </div>
         
         <div class="main-card">
@@ -927,7 +928,7 @@
                         });
                     });
                     
-                    updateProgress(70, 'Building FTP format...');
+                    updateProgress(70, 'Building FTP format and consolidating duplicate SKUs...');
                     
                     // Build FTP data structure
                     const ftpData = buildFTPStructure(groupedData, arnMap, frdDate);
@@ -1069,20 +1070,36 @@
                 
                 ftpRows.push(dtlHeaderRow);
                 
-                // Create DTL data rows for all items in all POs for this FC
-                let lineNo = 1;
+                // Consolidate all items for this FC, combining duplicate SKUs
+                const consolidatedItems = {};
                 poNumbers.forEach(po => {
                     poGroups[po].forEach(item => {
-                        const dtlRow = createEmptyRow();
-                        dtlRow[0] = 'DTL';
-                        dtlRow[1] = String(lineNo);
-                        dtlRow[3] = item.sku; // ItemID
-                        dtlRow[6] = String(item.quantity); // OrderedQty
-                        dtlRow[20] = 'EA'; // UOM
+                        const sku = item.sku;
+                        const qty = parseInt(item.quantity) || 0;
                         
-                        ftpRows.push(dtlRow);
-                        lineNo++;
+                        if (consolidatedItems[sku]) {
+                            // SKU already exists, add to quantity
+                            consolidatedItems[sku] += qty;
+                        } else {
+                            // New SKU, initialize quantity
+                            consolidatedItems[sku] = qty;
+                        }
                     });
+                });
+                
+                // Create DTL data rows for consolidated items (sorted by SKU for consistency)
+                let lineNo = 1;
+                const sortedSkus = Object.keys(consolidatedItems).sort();
+                sortedSkus.forEach(sku => {
+                    const dtlRow = createEmptyRow();
+                    dtlRow[0] = 'DTL';
+                    dtlRow[1] = String(lineNo);
+                    dtlRow[3] = sku; // ItemID
+                    dtlRow[6] = String(consolidatedItems[sku]); // OrderedQty (consolidated)
+                    dtlRow[20] = 'EA'; // UOM
+                    
+                    ftpRows.push(dtlRow);
+                    lineNo++;
                 });
                 
                 // Add column headers between FC groups (not after the last one)
