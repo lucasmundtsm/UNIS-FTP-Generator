@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PO Upload to FTP Pick List Converter - UNIS (v2.0 - SKU Consolidation)</title>
+    <title>PO Upload to FTP Pick List Converter - UNIS (v2.1 - SKU Consolidation + Address Updates)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -14,7 +14,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #2a44b8 0%, #261da5 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -60,7 +60,7 @@
         }
         
         .upload-section.dragover {
-            border-color: #233aa1;
+            border-color: #667eea;
             background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
             transform: scale(1.02);
         }
@@ -73,7 +73,7 @@
         .file-input-label {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #1d39b4 0%, #1d1aac 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 10px;
             cursor: pointer;
@@ -231,7 +231,7 @@
         }
         
         .progress-fill {
-            background: linear-gradient(90deg, #3b58d8, #2213af);
+            background: linear-gradient(90deg, #667eea, #764ba2);
             height: 100%;
             width: 0%;
             transition: width 0.3s ease;
@@ -338,7 +338,7 @@
         }
         
         .preview-table th {
-            background: linear-gradient(135deg, #2545d1 0%, #0e1b92 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 12px;
             text-align: left;
@@ -358,9 +358,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>PO Upload to FTP Pick List Converter</h1>
+            <h1>🚚 PO Upload to FTP Pick List Converter</h1>
             <p>Automatically transform Amazon PO Upload files into UNIS Pick List FTP format with ARN extraction</p>
-            <p style="font-size: 0.9em; opacity: 0.9;">v2.0 - Now consolidates duplicate SKUs within shipments for correct FTP processing</p>
+            <p style="font-size: 0.9em; opacity: 0.9;">v2.1 - SKU consolidation + Corrected FC addresses (6 FCs updated based on actual shipment data)</p>
         </div>
         
         <div class="main-card">
@@ -493,7 +493,7 @@
                     // USA FCs (129 total)
                     'ABE4': { name: 'ABE4', address1: '1610 Van Buren Road', city: 'Easton', state: 'PA', zip: '18045' },
                     'ABE8': { name: 'ABE8', address1: '401 Independence Road', city: 'Florence', state: 'NJ', zip: '08518' },
-                    'ABQ2': { name: 'ABQ2', address1: '6251 Pioneer Trail', city: 'NW LOS LUNAS', state: 'NM', zip: '87031' },
+                    'ABQ2': { name: 'ABQ2', address1: '6251 Pioneer Trail NW', city: 'LOS LUNAS', state: 'NM', zip: '87031' },
                     'ABS4': { name: 'ABS4', address1: '4410 Nexus Way', city: 'LAS VEGAS', state: 'NV', zip: '89115' },
                     'ACY2': { name: 'ACY2', address1: '1101 E PEARL ST', city: 'BURLINGTON', state: 'NJ', zip: '08016' },
                     'AKR1': { name: 'AKR1', address1: '4747 Rebar Ave NE', city: 'CANTON', state: 'OH', zip: '44705' },
@@ -521,11 +521,12 @@
                     'FAT2': { name: 'FAT2', address1: '3315 N Sunnyside Ave', city: 'Fresno', state: 'CA', zip: '93727' },
                     'FOE1': { name: 'FOE1', address1: '9400 LEAVENWORTH RD', city: 'KANSAS CITY', state: 'KS', zip: '66109' },
                     'FTW1': { name: 'FTW1', address1: '33333 LBJ Freeway', city: 'Dallas', state: 'TX', zip: '75241' },
-                    'FTW5': { name: 'FTW5', address1: '1475 AKRON WAY', city: 'FORNEY', state: 'TX', zip: '75126' },
+                    'FTW5': { name: 'FTW5', address1: '1475 AKRON WAY', city: 'FORNEY', state: 'TX', zip: '75126-3566' },
                     'FWA4': { name: 'FWA4', address1: '9798 Smith Road', city: 'FORT WAYNE', state: 'IN', zip: '46809' },
                     'GEG2': { name: 'GEG2', address1: '9401 W Geiger Blvd', city: 'SPOKANE', state: 'WA', zip: '99224' },
-                    'GEU2': { name: 'GEU2', address1: '750 Nexus Ave', city: 'Newark', state: 'CA', zip: '94560' },
-                    'GEU3': { name: 'GEU3', address1: '44511 Osgood Rd', city: 'Fremont', state: 'CA', zip: '94539' },
+                    'GEU2': { name: 'GEU2', address1: '15301 West Northern Avenue', city: 'Glendale', state: 'AZ', zip: '85307' },
+                    'GEU3': { name: 'GEU3', address1: '18900 W McDowell Road', city: 'BUCKEYE', state: 'AZ', zip: '85396' },
+                    'GEU5': { name: 'GEU5', address1: '4660 North Cotton Lane', city: 'GOODYEAR', state: 'AZ', zip: '85395' },
                     'GSO1': { name: 'GSO1', address1: '2251 SURRETT DR', city: 'HIGH POINT', state: 'NC', zip: '27265' },
                     'GSP1': { name: 'GSP1', address1: '700 OLD BUNCOMBE RD', city: 'GREENVILLE', state: 'SC', zip: '29609' },
                     'GYR2': { name: 'GYR2', address1: '17341 W MINNEZONA AVE', city: 'GOODYEAR', state: 'AZ', zip: '85395' },
@@ -566,7 +567,7 @@
                     'MEM1': { name: 'MEM1', address1: '3292 E Holmes Rd', city: 'Memphis', state: 'TN', zip: '38118' },
                     'MEM6': { name: 'MEM6', address1: '11505 Progress Way', city: 'OLIVE BRANCH', state: 'MS', zip: '38654' },
                     'MGE3': { name: 'MGE3', address1: '2960 SHILOH GARLAND DRIVE', city: 'MOBILE', state: 'AL', zip: '36695' },
-                    'MIT2': { name: 'MIT2', address1: '14230 REEVESTON ROAD', city: 'HOUSTON', state: 'TX', zip: '77039' },
+                    'MIT2': { name: 'MIT2', address1: '5408 Express Avenue', city: 'SHAFTER', state: 'CA', zip: '93263' },
                     'MKC4': { name: 'MKC4', address1: '19645 Waverly Rd', city: 'Edgerton', state: 'KS', zip: '66021' },
                     'MQJ1': { name: 'MQJ1', address1: '4412 W 300 N, GREENFIELD', city: 'GREENFIELD', state: 'IN', zip: '46140' },
                     'OAK3': { name: 'OAK3', address1: '255 Park Center Dr', city: 'Patterson', state: 'CA', zip: '95363' },
